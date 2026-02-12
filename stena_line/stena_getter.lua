@@ -17,13 +17,21 @@ local function fetch(url)
 end
 
 local function slugify(text)
+    if not text then return "" end
     local s = text:lower()
-    s = s:gsub(" \xe2\x86\x92 ", "-") 
+    local mapping = {
+        ["ä"]="a", ["ö"]="o", ["ü"]="u", ["å"]="a", ["æ"]="ae", ["ø"]="o",
+        ["ā"]="a", ["ē"]="e", ["ī"]="i", ["ļ"]="l", ["ņ"]="n", ["š"]="s", ["ž"]="z",
+        ["ą"]="a", ["ć"]="c", ["ę"]="e", ["ł"]="l", ["ń"]="n", ["ó"]="o", ["ś"]="s", ["ź"]="z", ["ż"]="z"
+    }
+    for utf8_char, ascii_char in pairs(mapping) do
+        s = s:gsub(utf8_char, ascii_char)
+    end
     s = s:gsub(" \226\134\146 ", "-")
     s = s:gsub(" %-> ", "-")
-    s = s:gsub(" ", "-")
-    s = s:gsub("[^%a%d%-]", "")
-    s = s:gsub("%-%-", "-")
+    s = s:gsub("[^%a%d]", "-")
+    s = s:gsub("%-+", "-")
+    s = s:gsub("^%-", ""):gsub("%-$", "")
     return s
 end
 
@@ -90,6 +98,7 @@ local function scrape(start_date, end_date)
             local api_url = string.format("%s/routes/%s/_jcr_content.timetable.%s.%s.json",
                 BASE_URL, route.slug, route.code, date)
             
+            io.stderr:write(string.format("  Fetching %s (%s)\n", route.slug, route.code, date))
             local raw = fetch(api_url)
             if raw then
                 local data, _, err = json.decode(raw)
