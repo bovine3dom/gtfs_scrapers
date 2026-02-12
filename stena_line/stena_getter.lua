@@ -13,7 +13,7 @@ local function fetch(url)
         headers = { ["User-Agent"] = USER_AGENT },
         sink = ltn12.sink.table(chunks)
     })
-    return (code == 200) and table.concat(chunks) or nil
+    return code, (code == 200 and table.concat(chunks) or nil)
 end
 
 local function slugify(text)
@@ -35,6 +35,13 @@ local function slugify(text)
     return s
 end
 
+-- some stena routes redirect <->. but not all. :). :). :).
+local function swap_direction(name)
+    local a, b = name:match("^(.-) \226\134\146 (.-)$")
+    if not a then return name end
+    return b .. " \226\134\146 " .. a
+end
+
 local function get_date_range(start_str, end_str)
     local function parse(d) 
         local y, m, day = d:match("(%d+)-(%d+)-(%d+)")
@@ -51,14 +58,14 @@ end
 
 local function discover_routes()
     io.stderr:write("Step 1: Finding seed route...\n")
-    local main_html = fetch(BASE_URL .. "/routes")
-    if not main_html then error("Failed to fetch /routes") end
+    local code, main_html = fetch(BASE_URL .. "/routes")
+    if code ~= 200 or not main_html then error("Failed to fetch /routes") end
 
     local seed_slug = main_html:match('href="[^"]-/routes/([%a%-]+)"')
     io.stderr:write("Step 2: Probing " .. seed_slug .. " for master list...\n")
     
-    local route_html = fetch(BASE_URL .. "/routes/" .. seed_slug)
-    if not route_html then error("Failed to fetch seed page") end
+    local code, route_html = fetch(BASE_URL .. "/routes/" .. seed_slug)
+    if code ~= 200 or not route_html then error("Failed to fetch seed page") end
 
     local unique_routes = {}
     
@@ -98,8 +105,25 @@ local function scrape(start_date, end_date)
             local api_url = string.format("%s/routes/%s/_jcr_content.timetable.%s.%s.json",
                 BASE_URL, route.slug, route.code, date)
             
-            io.stderr:write(string.format("  Fetching %s (%s)\n", route.slug, route.code, date))
-            local raw = fetch(api_url)
+            io.stderr:write(string.format("  Fetching %s (%s) for %s\n", route.slug, route.code, date))
+            
+            local code, raw = fetch(api_url)
+            
+            if code == 404 then
+                local swapped_name = swap_direction(route.name)
+                local slug2 = slugify(swapped_name)
+                local url2 = string.format("%s/routes/%s/_jcr_content.timetable.%s.%s.json", BASE_URL, slug2, route.code, date)
+                
+                io.stderr:write(string.format("  [404] Retrying %s with swapped slug: %s\n", route.code, slug2))
+                local code2, raw2 = fetch(url2)
+                
+                -- remember our victories
+                if code2 == 200 then
+                    route.slug = slug2
+                    raw = raw2
+                end
+            end
+
             if raw then
                 local data, _, err = json.decode(raw)
                 if not err and type(data) == "table" and #data > 0 then
