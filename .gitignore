@@ -2,5 +2,6 @@
 /lua
 /lua_modules
 /.luarocks
-gtfs_out
+*.txt
+*.csv
 *.json

@@ -1,1 +1,35 @@
-honestly i hope this repo does not get too big because this is more or less the last thing i want to be doing
+# GTFS Scrapers
+
+A collection of ferry schedule scrapers and GTFS converters.
+
+## Setup
+
+```bash
+luarocks install luasocket
+luarocks install luasec
+luarocks install dkjson
+```
+
+which should in theory generate you a local lua environment. with ./lua and ./luarocks.
+
+## Running Scrapers
+
+### Stena Line
+
+To scrape data:
+```bash
+./lua stena_line/stena_getter.lua 2026-02-13 2026-02-20 > stena_data.json
+```
+
+To convert to GTFS:
+```bash
+./lua stena_line/stena_to_gtfs.lua stena_data.json stena_gtfs/
+```
+
+## Project Structure
+
+- `common/`: Shared Lua utilities for scraping and GTFS conversion.
+- `lua`: Shell wrapper for the local Lua environment (includes `common` and `lua_modules` in path).
+- `luarocks`: Shell wrapper for LuaRocks targeting the local `lua_modules`.
+- `stena_line/`: Stena Line specific scraper and converter.
+- `dfds/`: (Future) DFDS specific scraper.
