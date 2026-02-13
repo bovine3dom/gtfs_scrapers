@@ -1,6 +1,10 @@
 # GTFS Scrapers
 
-A collection of ferry schedule scrapers and GTFS converters.
+A collection of ferry schedule scrapers and GTFS converters. that i really didn't want to write. hey guys please obey eu law? that would be nice? https://transport.ec.europa.eu/transport-themes/smart-mobility/road/its-directive-and-action-plan/national-access-points_en
+
+## Data for your convenience
+
+see release/. cc0.
 
 ## Setup
 
@@ -46,4 +50,4 @@ To convert to GTFS:
 - `lua`: Shell wrapper for the local Lua environment (includes `common` and `lua_modules` in path).
 - `luarocks`: Shell wrapper for LuaRocks targeting the local `lua_modules`.
 - `stena_line/`: Stena Line specific scraper and converter.
-- `dfds/`: (Future) DFDS specific scraper.
+- `dfds/`: DFDS specific scraper.
