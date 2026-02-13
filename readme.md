@@ -1,5 +1,7 @@
 # GTFS Scrapers
 
+![](assets/vanity.png)
+
 A collection of ferry schedule scrapers and GTFS converters. that i really didn't want to write. hey guys please obey eu law? that would be nice? https://transport.ec.europa.eu/transport-themes/smart-mobility/road/its-directive-and-action-plan/national-access-points_en
 
 ## Data for your convenience
