@@ -26,6 +26,18 @@ To convert to GTFS:
 ./lua stena_line/stena_to_gtfs.lua stena_data.json stena_gtfs/
 ```
 
+### DFDS
+
+To scrape data:
+```bash
+./lua dfds/dfds_getter.lua 2026-02-13 2026-02-20 > dfds_data.json
+```
+
+To convert to GTFS:
+```bash
+./lua dfds/dfds_to_gtfs.lua dfds_data.json dfds_gtfs/
+```
+
 ## Project Structure
 
 - `common/`: Shared Lua utilities for scraping and GTFS conversion.
