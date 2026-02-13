@@ -18,7 +18,7 @@ M.stops = {
     ["Dunkirk"] = { lat = "51.020359424886635", lon = "2.1922982479533175" },
     ["Calais"] = { lat = "50.9667", lon = "1.8667" },
     ["Dover"] = { lat = "51.12664153974177", lon = "1.3300029576297447" },
-    ["Amsterdam"] = { lat = "52.4631837", lon = "4.5861690" }, -- Felison Terminal (IJmuiden)
+    ["Amsterdam"] = { lat = "52.4631837", lon = "4.5861690" },
     ["Newcastle"] = { lat = "54.99211686211663", lon = "-1.450795138119446" },
     ["Dieppe"] = { lat = "49.93363", lon = "1.08805" },
     ["Newhaven"] = { lat = "50.7934543", lon = "0.0540304" },
@@ -31,7 +31,7 @@ M.stops = {
     ["Portsmouth"] = { lat = "50.811823", lon = "-1.088367" },
     ["Paldiski"] = { lat = "59.35007", lon = "24.04551" },
     ["Kapellskar"] = { lat = "59.7186414", lon = "19.0640070" },
-    -- Add more as discovered
+    ["Trelleborg"] = { lat = "55.372136397317554", lon = "13.15179608166161" },
 }
 
 return M

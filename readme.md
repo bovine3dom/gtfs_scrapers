@@ -33,6 +33,8 @@ To scrape data:
 ./lua dfds/dfds_getter.lua 2026-02-13 2026-02-20 > dfds_data.json
 ```
 
+NB: large windows will be capped at 500 departures
+
 To convert to GTFS:
 ```bash
 ./lua dfds/dfds_to_gtfs.lua dfds_data.json dfds_gtfs/
