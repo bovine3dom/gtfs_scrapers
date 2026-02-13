@@ -1,5 +1,7 @@
+--- Common utilities for GTFS scraping projects.
 local M = {}
 
+--- Mapping of accented/Unicode characters to their ASCII equivalents.
 M.CHAR_MAPPING = {
     ["ą"] = "a",
     ["ć"] = "c",
@@ -70,6 +72,9 @@ M.CHAR_MAPPING = {
     ["Ñ"] = "N"
 }
 
+--- Replaces accented characters with their base ASCII equivalents.
+-- @param text string The text to process.
+-- @return string The text with diacritics removed.
 function M.strip_diacritics(text)
     if not text then return "" end
     local s = text
@@ -79,6 +84,10 @@ function M.strip_diacritics(text)
     return s
 end
 
+--- Converts a string into a canonical ID (uppercase, alphanumeric, underscores).
+-- Useful for generating stop_ids from port names.
+-- @param text string The input text (e.g., "Gdańsk").
+-- @return string The canonical ID (e.g., "GDANSK").
 function M.canonicalize_id(text)
     if not text then return "UNKNOWN" end
     local s = M.strip_diacritics(text)
@@ -90,6 +99,9 @@ function M.canonicalize_id(text)
     return s
 end
 
+--- Converts a string into a URL-friendly slug.
+-- @param text string The input text.
+-- @return string The slugified text.
 function M.slugify(text)
     if not text then return "" end
     local s = M.strip_diacritics(text:lower())
@@ -101,10 +113,15 @@ function M.slugify(text)
     return s
 end
 
+--- Ensures a directory exists by running mkdir -p.
+-- @param path string The directory path to ensure.
 function M.ensure_dir(path)
     os.execute("mkdir -p " .. path)
 end
 
+--- Reads the entire contents of a file.
+-- @param path string The path to the file.
+-- @return string|nil The file contents, or nil if the file could not be opened.
 function M.read_file(path)
     local f = io.open(path, "rb")
     if not f then return nil end
@@ -113,6 +130,9 @@ function M.read_file(path)
     return content
 end
 
+--- Escapes a value for inclusion in a CSV file.
+-- @param val any The value to escape.
+-- @return string The CSV-safe string.
 function M.escape_csv(val)
     val = tostring(val or "")
     if val:find('[,"]') then
@@ -121,14 +141,21 @@ function M.escape_csv(val)
     return val
 end
 
+--- Writes a row of columns to a file in CSV format.
+-- @param f file The file handle to write to.
+-- @param columns table An array of values for the CSV columns.
 function M.write_csv(f, columns)
     local row = {}
     for i, col in ipairs(columns) do row[i] = M.escape_csv(col) end
     f:write(table.concat(row, ",") .. "\n")
 end
 
+--- Formats an ISO-8601 datetime string into a GTFS-compliant HHH:MM:SS format.
+-- Handles trips that cross midnight by comparing with the base_date.
+-- @param iso_str string The ISO-8601 string (e.g., "2026-02-13T01:30:00").
+-- @param base_date string The service date as YYYY-MM-DD.
+-- @return string The GTFS time string (e.g., "25:30:00" for 1am the next day).
 function M.format_gtfs_time(iso_str, base_date)
-    -- Expects ISO string like "2026-02-13T11:08:13"
     local date_part, time_part = iso_str:match("([^T]+)T([^%.]+)")
     if not date_part then return "00:00:00" end
     local h, m, s = time_part:match("(%d+):(%d+):(%d+)")
@@ -136,6 +163,10 @@ function M.format_gtfs_time(iso_str, base_date)
     return string.format("%02d:%02d:%02d", h, m, s)
 end
 
+--- Splits a route name into origin and destination.
+-- Supports both UTF-8 arrows and "->" markers.
+-- @param name string The route name (e.g., "London -> Paris").
+-- @return string, string The origin and destination names.
 function M.split_route(name)
     local origin, dest = name:match("^(.-) \226\134\146 (.-)$") -- arrow
     if not origin then
@@ -144,12 +175,19 @@ function M.split_route(name)
     return origin, dest
 end
 
+--- Reverses the direction of a route name.
+-- @param name string The route name.
+-- @return string The reversed route name (or original if it couldn't be split).
 function M.swap_route(name)
     local a, b = M.split_route(name)
     if not a then return name end
     return b .. " \226\134\146 " .. a
 end
 
+--- Generates a list of YYYY-MM-DD strings for a given range.
+-- @param start_str string The start date (YYYY-MM-DD).
+-- @param end_str string The end date (YYYY-MM-DD).
+-- @return table An array of date strings.
 function M.get_date_range(start_str, end_str)
     local function parse(d)
         local y, m, day = d:match("(%d+)-(%d+)-(%d+)")
@@ -165,6 +203,10 @@ function M.get_date_range(start_str, end_str)
     return dates
 end
 
+--- Returns a closure for fetching URLs with a specific User-Agent.
+-- Requires luasec and luasocket to be installed.
+-- @param user_agent string The User-Agent header to use.
+-- @return function A function that takes a URL and returns (status_code, body).
 function M.make_fetcher(user_agent)
     local https = require("ssl.https")
     local ltn12 = require("ltn12")
