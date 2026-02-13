@@ -25,17 +25,22 @@ local function run_conversion(input_path, out_dir)
         routes = open_gtfs("routes.txt"),
         trips = open_gtfs("trips.txt"),
         stop_times = open_gtfs("stop_times.txt"),
+        calendar = open_gtfs("calendar.txt"),
         calendar_dates = open_gtfs("calendar_dates.txt")
     }
 
-    utils.write_csv(files.agency, { "agency_id", "agency_name", "agency_url", "agency_timezone" })
-    utils.write_csv(files.stops, { "stop_id", "stop_name", "stop_lat", "stop_lon" })
-    utils.write_csv(files.routes, { "route_id", "agency_id", "route_long_name", "route_type" })
-    utils.write_csv(files.trips, { "route_id", "service_id", "trip_id", "trip_headsign" })
-    utils.write_csv(files.stop_times, { "trip_id", "arrival_time", "departure_time", "stop_id", "stop_sequence" })
-    utils.write_csv(files.calendar_dates, { "service_id", "date", "exception_type" })
+    local source_name = config.agency.id:lower()
 
-    utils.write_csv(files.agency, { config.agency.id, config.agency.name, config.agency.url, config.agency.timezone })
+    for k, f in pairs(files) do
+        utils.write_gtfs_header(f, k)
+    end
+
+    utils.write_gtfs_row(files.agency, "agency", {
+        agency_id = config.agency.id,
+        agency_name = config.agency.name,
+        agency_url = config.agency.url,
+        agency_timezone = config.agency.timezone
+    }, source_name)
 
     local stops_written = {}
     local routes_written = {}
@@ -54,7 +59,12 @@ local function run_conversion(input_path, out_dir)
             if not stops_written[port_id] then
                 local coords = config.stops[port.name]
                 if coords then
-                    utils.write_csv(files.stops, { port_id, port.name, coords.lat, coords.lon })
+                    utils.write_gtfs_row(files.stops, "stops", {
+                        stop_id = port_id,
+                        stop_name = port.name,
+                        stop_lat = coords.lat,
+                        stop_lon = coords.lon
+                    }, source_name)
                     stops_written[port_id] = true
                 else
                     io.stderr:write("WARNING: Missing coordinates for: [" .. port.name .. "]\n")
@@ -64,28 +74,55 @@ local function run_conversion(input_path, out_dir)
 
         -- Write route
         if not routes_written[route_id] then
-            utils.write_csv(files.routes, { route_id, config.agency.id, route_name, "4" })
+            utils.write_gtfs_row(files.routes, "routes", {
+                route_id = route_id,
+                agency_id = config.agency.id,
+                route_long_name = route_name,
+                route_type = "4"
+            }, source_name)
             routes_written[route_id] = true
         end
 
         -- Write service/calendar_dates
         local dep_date = dep.scheduledDepartureTime:match("^(%d%d%d%d%-%d%d%-%d%d)")
-        local service_id = "SVC-" .. dep_date:gsub("-", "")
+        local date_clean = dep_date:gsub("-", "")
+        local service_id = "SVC-" .. date_clean
         if not services_written[service_id] then
-            utils.write_csv(files.calendar_dates, { service_id, dep_date:gsub("-", ""), "1" })
+            utils.write_gtfs_row(files.calendar_dates, "calendar_dates", {
+                service_id = service_id,
+                date = date_clean,
+                exception_type = "1"
+            }, source_name)
             services_written[service_id] = true
         end
 
         -- Write trip
         local trip_id = dep.departureId
-        utils.write_csv(files.trips, { route_id, service_id, trip_id, "" })
+        utils.write_gtfs_row(files.trips, "trips", {
+            route_id = route_id,
+            service_id = service_id,
+            trip_id = trip_id,
+            trip_headsign = ""
+        }, source_name)
 
         -- Write stop times
         local dep_time = utils.format_gtfs_time(dep.scheduledDepartureTime, dep_date)
         local arr_time = utils.format_gtfs_time(dep.scheduledArrivalTime, dep_date)
 
-        utils.write_csv(files.stop_times, { trip_id, dep_time, dep_time, origin.code, "1" })
-        utils.write_csv(files.stop_times, { trip_id, arr_time, arr_time, dest.code, "2" })
+        utils.write_gtfs_row(files.stop_times, "stop_times", {
+            trip_id = trip_id,
+            arrival_time = dep_time,
+            departure_time = dep_time,
+            stop_id = origin.code,
+            stop_sequence = "1"
+        }, source_name)
+        utils.write_gtfs_row(files.stop_times, "stop_times", {
+            trip_id = trip_id,
+            arrival_time = arr_time,
+            departure_time = arr_time,
+            stop_id = dest.code,
+            stop_sequence = "2"
+        }, source_name)
     end
 
     for _, f in pairs(files) do f:close() end

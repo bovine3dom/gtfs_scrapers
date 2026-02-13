@@ -1,6 +1,67 @@
 --- Common utilities for GTFS scraping projects.
 local M = {}
 
+--- Canonical GTFS column definitions as expected by the SQL scripts.
+M.COLUMNS = {
+    agency = {
+        "source", "agency_id", "agency_name", "agency_url", "agency_timezone",
+        "agency_email", "agency_fare_url", "agency_lang", "agency_phone"
+    },
+    stops = {
+        "source", "stop_id", "stop_code", "stop_name", "stop_desc",
+        "stop_lat", "stop_lon", "zone_id", "stop_url", "location_type",
+        "parent_station", "stop_timezone", "wheelchair_boarding", "level_id", "platform_code"
+    },
+    routes = {
+        "source", "route_id", "agency_id", "route_short_name", "route_long_name",
+        "route_desc", "route_type", "route_url", "route_color", "route_text_color",
+        "route_sort_order", "continuous_pickup", "continuous_drop_off"
+    },
+    trips = {
+        "source", "route_id", "service_id", "trip_id", "trip_headsign",
+        "trip_short_name", "direction_id", "block_id", "shape_id",
+        "wheelchair_accessible", "bikes_allowed"
+    },
+    stop_times = {
+        "source", "trip_id", "arrival_time", "departure_time", "stop_id",
+        "stop_sequence", "stop_headsign", "pickup_type", "drop_off_type",
+        "continuous_pickup", "continuous_drop_off", "shape_dist_traveled",
+        "timepoint", "local_zone_id"
+    },
+    calendar = {
+        "source", "service_id", "monday", "tuesday", "wednesday", "thursday",
+        "friday", "saturday", "sunday", "start_date", "end_date"
+    },
+    calendar_dates = {
+        "source", "service_id", "date", "exception_type"
+    }
+}
+
+--- Default values for certain columns if not provided.
+M.DEFAULTS = {
+    stops = {
+        location_type = "0",
+        wheelchair_boarding = "1"
+    },
+    routes = {
+        route_type = "4", -- Ferry
+        route_color = "000000",
+        route_text_color = "FFFFFF"
+    },
+    trips = {
+        wheelchair_accessible = "1",
+        bikes_allowed = "1"
+    },
+    stop_times = {
+        pickup_type = "0",
+        drop_off_type = "0",
+        timepoint = "1"
+    },
+    agency = {
+        agency_lang = "en"
+    }
+}
+
 --- Mapping of accented/Unicode characters to their ASCII equivalents.
 M.CHAR_MAPPING = {
     ["ą"] = "a",
@@ -148,6 +209,36 @@ function M.write_csv(f, columns)
     local row = {}
     for i, col in ipairs(columns) do row[i] = M.escape_csv(col) end
     f:write(table.concat(row, ",") .. "\n")
+end
+
+--- Writes the header for a GTFS file based on the canonical column definitions.
+-- @param f file The file handle.
+-- @param file_type string The GTFS file type (e.g., "stops").
+function M.write_gtfs_header(f, file_type)
+    local columns = M.COLUMNS[file_type]
+    if not columns then error("Unknown GTFS file type: " .. tostring(file_type)) end
+    M.write_csv(f, columns)
+end
+
+--- Writes a row to a GTFS file, ensuring all canonical columns are present.
+-- @param f file The file handle.
+-- @param file_type string The GTFS file type.
+-- @param data table A table mapping column names to values.
+-- @param source_name string The value for the "source" column.
+function M.write_gtfs_row(f, file_type, data, source_name)
+    local columns = M.COLUMNS[file_type]
+    if not columns then error("Unknown GTFS file type: " .. tostring(file_type)) end
+    local row = {}
+    local defaults = M.DEFAULTS[file_type] or {}
+    for i, col in ipairs(columns) do
+        local val = data[col]
+        if (val == nil or val == "") and defaults[col] then
+            val = defaults[col]
+        end
+        if col == "source" then val = source_name end
+        row[i] = val or ""
+    end
+    M.write_csv(f, row)
 end
 
 --- Formats an ISO-8601 datetime string into a GTFS-compliant HHH:MM:SS format.
